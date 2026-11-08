@@ -546,6 +546,7 @@
   let wins=0, losses=0, draws=0, rounds=0, streak=0;
   let playing=false;
   let firstGame = true;
+  let session = 0; // bumped by resetGame() to cancel any in-flight round
 
   const pBox     = document.getElementById('playerBox');
   const aBox     = document.getElementById('aiBox');
@@ -567,6 +568,7 @@
   async function play(pick){
     if(playing) return;
     playing=true;
+    const mySession = session;
     if(firstGame){ chips.innerHTML=''; firstGame=false; }
     disableAll(true);
     clearBoxes();
@@ -583,6 +585,7 @@
       cdDisp.offsetHeight;
       cdDisp.style.animation='countFlash 0.65s ease forwards';
       await sleep(600);
+      if(session!==mySession) return; // game was reset mid-round
     }
     cdDisp.textContent='⚔️';
 
@@ -591,11 +594,13 @@
     const iv = setInterval(()=>{ aBox.textContent=emojis[choices[n++%3]]; },80);
     await sleep(700);
     clearInterval(iv);
+    if(session!==mySession){ aBox.textContent='🤖'; return; } // game was reset mid-round
 
     const aiPick = choices[Math.floor(Math.random()*3)];
     aBox.textContent = emojis[aiPick];
     aBox.classList.add('pop-in');
     await sleep(300);
+    if(session!==mySession) return; // game was reset mid-round
 
     rounds++;
     roundTxt.textContent = `ROUND ${rounds}`;
@@ -630,6 +635,7 @@
 
     updateStats();
     await sleep(1200);
+    if(session!==mySession) return; // game was reset mid-round
     playing=false;
     disableAll(false);
   }
@@ -665,6 +671,7 @@
   }
 
   function resetGame(){
+    session++; // cancel any round still animating
     wins=losses=draws=rounds=streak=0;
     playing=false; firstGame=true;
     pScore.textContent='0'; aScore.textContent='0';
